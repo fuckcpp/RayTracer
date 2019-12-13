@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include "geometry.h"
+#include "Material.h"
 #include "Sphere.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -11,16 +12,19 @@
 #include "stb_image.h"
 using namespace std;
 
-Vec3f color1(255,0,0);
-Vec3f color2(0,255,0);
-Sphere sphere(Vec3f(0,0,-10),5);
+Material ivory(Vec3f(0.4, 0.4, 0.3));
+Material red_rubber(Vec3f(0.3, 0.1, 0.1));
+Material bg(Vec3f(0.1,0.1,0.5));
+vector<Sphere> spheres;
 
 Vec3f trace(const Vec3f& orig,const Vec3f& dir)
 {
-	if(sphere.isRayIntersect(orig,dir))
-		return color1;
-	else
-		return color2;
+	for(auto& sphere:spheres)
+	{	
+		if(sphere.isRayIntersect(orig,dir))
+			return sphere.mat.color;
+	}
+	return bg.color;
 }
 
 void render()
@@ -41,9 +45,8 @@ void render()
 	{
 		for(int i=0;i<w;i++)
 		{
-			
 			float x=((i+0.5)/w*2-1)*tan(fov/2);
-			float y=((j+0.5)/h*2-1)*tan(fov/2)*h/w;
+			float y=-((j+0.5)/h*2-1)*tan(fov/2)*h/w;
 			float z=-1;
 			Dir=Vec3f(x,y,z);
 			Dir.normalize();
@@ -62,7 +65,10 @@ void render()
 int main()
 {
 	cout<<"ray tracer program"<<endl;
+	spheres.emplace_back(Sphere(Vec3f(-3,0,-16),2,ivory));
+	spheres.emplace_back(Sphere(Vec3f(-1,-1.5,-12),2,red_rubber));
+	spheres.emplace_back(Sphere(Vec3f(1.5,-0.5,-18),3,ivory));
+	spheres.emplace_back(Sphere(Vec3f(7,5,-18),4,red_rubber));
 	render();
 	return 0;
 }	
-
