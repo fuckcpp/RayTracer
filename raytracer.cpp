@@ -17,6 +17,28 @@ Material ivory(Vec3f(0.4, 0.4, 0.3));
 Material red_rubber(Vec3f(0.3, 0.1, 0.1));
 Material bg(Vec3f(0.1,0.1,0.5));
 
+void tonemapping(Vec3f& c)
+{
+        c.x=c.x>255?255:(c.x<0?0:c.x);
+        c.y=c.y>255?255:(c.y<0?0:c.y);
+        c.z=c.z>255?255:(c.z<0?0:c.z);
+}
+
+void intersect(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,float& distance,Vec3f& hit,Vec3f& norm,Material& mat)
+{
+	float dis=numeric_limits<float>::max();
+	for(auto& sphere:spheres)
+	{
+		if(sphere.isRayIntersect(orig,dir,dis)&&dis<distance)
+		{
+			distance=dis;
+                        hit=dir*dis+orig;
+			norm=(hit-sphere.center).normalize();
+			mat=sphere.mat;
+		}
+	}
+}
+
 Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 	const vector<PointLight>& pointLights)
 {
@@ -24,20 +46,21 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 	Vec3f n;
 	float intensitys=0;
 	Material mat(Vec3f(1,0,0));
-	for(auto& sphere:spheres)
-	{	
-		if(sphere.isRayIntersect(orig,dir,hit,n,mat))
+	float distance=numeric_limits<float>::max();
+	Vec3f color=bg.color;
+	intersect(orig,dir,spheres,distance,hit,n,mat);
+	if(distance<numeric_limits<float>::max())
+	{
+		for(auto& pointLight:pointLights)
 		{
-			for(auto& pointLight:pointLights)
-			{
-				Vec3f l=(pointLight.center-hit).normalize();
-				intensitys+=pointLight.intensity*max(0.f,l*n);
-			}
-			Vec3f color=mat.color*intensitys;//rgb值超过255怎么解决？
-			return color;
+			Vec3f l=(pointLight.center-hit).normalize();
+			intensitys+=pointLight.intensity*max(0.f,l*n);
 		}
+		color=mat.color*intensitys;//rgb值超过255怎么解决？
 	}
-	return bg.color;
+	tonemapping(color);
+	return color;
+	
 }
 
 void render(const vector<Sphere>& spheres,const vector<PointLight>& pointLights)
@@ -85,6 +108,7 @@ int main()
 	spheres.emplace_back(Sphere(Vec3f(1.5,-0.5,-18),3,ivory));
 	spheres.emplace_back(Sphere(Vec3f(7,5,-18),4,red_rubber));
 	pointLights.emplace_back(PointLight(Vec3f(10,10,10),1));
+	pointLights.emplace_back(PointLight(Vec3f(0,0,0),1));
 	pointLights.emplace_back(PointLight(Vec3f(0,0,0),1));
 	render(spheres,pointLights);
 	return 0;
