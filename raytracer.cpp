@@ -13,9 +13,13 @@
 #include "stb_image.h"
 using namespace std;
 
-Material ivory(Vec3f(0.4, 0.4, 0.3));
-Material red_rubber(Vec3f(0.3, 0.1, 0.1));
-Material bg(Vec3f(0.1,0.1,0.5));
+const Material bg(Vec3f(0.1,0.5,0.1));
+const Material white(Vec3f(1.,1.,1.));
+
+Vec3f reflect(const Vec3f& in,const Vec3f& n)
+{
+	return n*-(in*n)*2+in;
+}
 
 void tonemapping(Vec3f& c)
 {
@@ -44,7 +48,8 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 {
 	Vec3f hit;
 	Vec3f n;
-	float intensitys=0;
+	float diffIntensity=0;
+	float specIntensity=0;
 	Material mat(Vec3f(1,0,0));
 	float distance=numeric_limits<float>::max();
 	Vec3f color=bg.color;
@@ -54,9 +59,12 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 		for(auto& pointLight:pointLights)
 		{
 			Vec3f l=(pointLight.center-hit).normalize();
-			intensitys+=pointLight.intensity*max(0.f,l*n);
+			diffIntensity+=pointLight.intensity*max(0.f,l*n);
+			specIntensity+=pointLight.intensity*powf(max(0.f,reflect(-l,n)*-dir),mat.specular);
 		}
-		color=mat.color*intensitys;//rgb值超过255怎么解决？
+	       Vec3f diffColor=mat.color*diffIntensity;
+	       Vec3f specColor=white.color*specIntensity;
+	       color=diffColor*mat.albedo[0]+specColor*mat.albedo[1];
 	}
 	tonemapping(color);
 	return color;
@@ -72,11 +80,12 @@ void render(const vector<Sphere>& spheres,const vector<PointLight>& pointLights)
 	cout<<" w:"<<w<<" h:"<<h<<" n:"<<n<<endl;
 	string outPng = "out.png";
 
-	Vec3f Camera(0.,0.,0.);
+	Vec3f Camera(0.f,0.f,0.f);
 	Vec3f Dir;
 	float fov=M_PI/2;
 
 	//rgba 4通道，a取值255
+	//#pragma omp parallel for
 	for(int j=0;j<h;j++)
 	{
 		for(int i=0;i<w;i++)
@@ -103,13 +112,16 @@ int main()
 	cout<<"ray tracer program"<<endl;
 	vector<Sphere> spheres;
 	vector<PointLight> pointLights;
+
+	Material ivory(Vec3f(0.4, 0.4, 0.3),Vec2f(0.6,0.3),50);
+	Material red_rubber(Vec3f(0.3, 0.1, 0.1),Vec2f(0.9,0.1),10);
 	spheres.emplace_back(Sphere(Vec3f(-3,0,-16),2,ivory));
 	spheres.emplace_back(Sphere(Vec3f(-1,-1.5,-12),2,red_rubber));
 	spheres.emplace_back(Sphere(Vec3f(1.5,-0.5,-18),3,ivory));
 	spheres.emplace_back(Sphere(Vec3f(7,5,-18),4,red_rubber));
-	pointLights.emplace_back(PointLight(Vec3f(10,10,10),1));
-	pointLights.emplace_back(PointLight(Vec3f(0,0,0),1));
-	pointLights.emplace_back(PointLight(Vec3f(0,0,0),1));
+	pointLights.emplace_back(PointLight(Vec3f(-10,10,10),2));
+	pointLights.emplace_back(PointLight(Vec3f(30,50,-25),1.8));
+	pointLights.emplace_back(PointLight(Vec3f(30,20,30),1.7));
 	render(spheres,pointLights);
 	return 0;
 }	
