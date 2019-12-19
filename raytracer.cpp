@@ -28,6 +28,19 @@ void tonemapping(Vec3f& c)
         c.z=c.z>255?255:(c.z<0?0:c.z);
 }
 
+bool shadow(const vector<Sphere>& spheres,const Vec3f& hit,const Vec3f& l,const Vec3f& n)
+{
+	bool isOccluded=false;
+	float distance=numeric_limits<float>::max();
+	Vec3f shadow_orig=l*n>0?hit+n*1e-3:hit-n*1e-3;
+	for(auto& sphere:spheres)
+	{
+		if(sphere.isRayIntersect(shadow_orig,l,distance))
+			isOccluded=true;
+	}
+	return isOccluded;
+}
+
 void intersect(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,float& distance,Vec3f& hit,Vec3f& norm,Material& mat)
 {
 	float dis=numeric_limits<float>::max();
@@ -59,6 +72,8 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 		for(auto& pointLight:pointLights)
 		{
 			Vec3f l=(pointLight.center-hit).normalize();
+			if(shadow(spheres,hit,l,n))
+				continue;
 			diffIntensity+=pointLight.intensity*max(0.f,l*n);
 			specIntensity+=pointLight.intensity*powf(max(0.f,reflect(-l,n)*-dir),mat.specular);
 		}
