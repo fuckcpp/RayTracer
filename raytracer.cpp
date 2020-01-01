@@ -34,8 +34,8 @@ Vec3f refract(const Vec3f& in,const Vec3f& N,float refract)
 		n=-N;
 	}
 	float eta=ni/nj;
-	float cosj=sqrt(1-eta*eta*(1-cosi*cosi));
-	return cosj<0?Vec3f(0,0,0):in*eta+n*(eta*cosj-cosi);
+	float cosj=sqrtf(1-eta*eta*(1-cosi*cosi));
+	return cosj<0?Vec3f(0,0,0):in*eta+n*(eta*cosi-cosj);
 }
 
 void tonemapping(Vec3f& c)
@@ -102,7 +102,7 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 		}
 	       Vec3f diffColor=mat.color*diffIntensity;
 	       Vec3f specColor=white.color*specIntensity;
-	       color=diffColor*mat.albedo[0]+specColor*mat.albedo[1]+reflectColor*mat.albedo[2];
+	       color=diffColor*mat.albedo[0]+specColor*mat.albedo[1]+reflectColor*mat.albedo[2]+refractColor*mat.albedo[3];
 	}
 	tonemapping(color);
 	return color;
@@ -110,8 +110,8 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 
 void render(const vector<Sphere>& spheres,const vector<PointLight>& pointLights)
 {
-	const int w = 1080;
-	const int h = 720;
+	const int w = 2160;
+	const int h = 1440;
 	const int n = 4;
 	unsigned char* data=(unsigned char*)malloc(w*h*n);
 	cout<<" w:"<<w<<" h:"<<h<<" n:"<<n<<endl;
