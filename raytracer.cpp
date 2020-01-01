@@ -21,6 +21,23 @@ Vec3f reflect(const Vec3f& in,const Vec3f& n)
 	return n*-(in*n)*2+in;
 }
 
+Vec3f refract(const Vec3f& in,const Vec3f& N,float refract)
+{
+	float cosi=-in*N;
+	float ni=1;
+	float nj=refract;
+	Vec3f n=N;
+	if(cosi<0)
+	{
+		cosi=-cosi;
+		swap(ni,nj);
+		n=-N;
+	}
+	float eta=ni/nj;
+	float cosj=sqrt(1-eta*eta*(1-cosi*cosi));
+	return cosj<0?Vec3f(0,0,0):in*eta+n*(eta*cosj-cosi);
+}
+
 void tonemapping(Vec3f& c)
 {
         c.x=c.x>255?255:(c.x<0?0:c.x);
@@ -70,8 +87,11 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 		float diffIntensity=0;
 		float specIntensity=0;
 		Vec3f reflectRay=reflect(dir,n).normalize();
+		Vec3f refractRay=refract(dir,n,mat.refract).normalize();
 		Vec3f reflectPoint=reflectRay*n>0?hit+n*1e-3:hit-n*1e-3;
+		Vec3f refractPoint=refractRay*n>0?hit+n*1e-3:hit-n*1e-3;
 		Vec3f reflectColor=trace(reflectPoint,reflectRay,spheres,pointLights,depth-1);
+		Vec3f refractColor=trace(refractPoint,refractRay,spheres,pointLights,depth-1);
 		for(auto& pointLight:pointLights)
 		{
 			Vec3f l=(pointLight.center-hit).normalize();
@@ -131,11 +151,12 @@ int main()
 	vector<Sphere> spheres;
 	vector<PointLight> pointLights;
 
-	Material ivory(Vec3f(0.4, 0.4, 0.3),Vec3f(0.6,0.3,0.1),50);
-	Material red_rubber(Vec3f(0.3, 0.1, 0.1),Vec3f(0.9,0.1,0.0),10);
-	Material mirror(Vec3f(1.0,1.0,1.0),Vec3f(0.,10.0,0.8),1425);
+	Material ivory(Vec3f(0.4, 0.4, 0.3),Vec4f(0.6,0.3,0.1,0.0),50,1.0);
+	Material glass(Vec3f(0.6,0.7,0.8),Vec4f(0.0,0.5,0.1,0.8),125.,1.5);
+	Material red_rubber(Vec3f(0.3, 0.1, 0.1),Vec4f(0.9,0.1,0.0,0.0),10,1.0);
+	Material mirror(Vec3f(1.0,1.0,1.0),Vec4f(0.,10.0,0.8,0.0),1425,1.0);
 	spheres.emplace_back(Sphere(Vec3f(-3,0,-16),2,ivory));
-	spheres.emplace_back(Sphere(Vec3f(-1,-1.5,-12),2,mirror));
+	spheres.emplace_back(Sphere(Vec3f(-1,-1.5,-12),2,glass));
 	spheres.emplace_back(Sphere(Vec3f(1.5,-0.5,-18),3,red_rubber));
 	spheres.emplace_back(Sphere(Vec3f(7,5,-18),4,mirror));
 	pointLights.emplace_back(PointLight(Vec3f(-10,10,10),2));

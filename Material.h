@@ -3,16 +3,17 @@
 struct Material
 {
 	Vec3f color;
-	Vec3f albedo;
+	Vec4f albedo;
 	float specular;
+	float refract;
 
-	Material(const Vec3f& c,const Vec3f& a,const float& s):albedo(a),specular(s)
+	Material(const Vec3f& c,const Vec4f& a,const float& s,const float& r):albedo(a),specular(s),refract(r)
 	{
 		color=c*255;
 	}
 
 	Material(const Vec3f& c)
 	{
-		new(this) Material(c,Vec3f(0.,0.,0.),0.);
+		new(this) Material(c,Vec4f(0.,0.,0.,0.),0.,1.);
 	}
 };
