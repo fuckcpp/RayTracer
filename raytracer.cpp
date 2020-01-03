@@ -9,12 +9,23 @@
 #include "light.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 using namespace std;
 
 const Material bg(Vec3f(0.2,0.7,0.8));
 const Material white(Vec3f(1.,1.,1.));
+const Material bg_fj("texture/bg/fj.jpg");
+const int w = 1080;
+const int h = 720;
+const int n = 4;
+float fov=M_PI/2;
+
+texture* posx=new texture("texture/cubemap/posx.jpg");
+texture* posy=new texture("texture/cubemap/posy.jpg");
+texture* posz=new texture("texture/cubemap/posz.jpg");
+texture* negx=new texture("texture/cubemap/negx.jpg");
+texture* negy=new texture("texture/cubemap/negy.jpg");
+texture* negz=new texture("texture/cubemap/negz.jpg");
+cubemap* envir=new cubemap(posx,posy,posz,negx,negy,negz);
 
 Vec3f reflect(const Vec3f& in,const Vec3f& n)
 {
@@ -104,22 +115,22 @@ Vec3f trace(const Vec3f& orig,const Vec3f& dir,const vector<Sphere>& spheres,
 	       Vec3f specColor=white.color*specIntensity;
 	       color=diffColor*mat.albedo[0]+specColor*mat.albedo[1]+reflectColor*mat.albedo[2]+refractColor*mat.albedo[3];
 	}
+	else
+	{
+		color=envir->intersect(dir);
+	}
 	tonemapping(color);
 	return color;
 }
 
 void render(const vector<Sphere>& spheres,const vector<PointLight>& pointLights)
 {
-	const int w = 2160;
-	const int h = 1440;
-	const int n = 4;
 	unsigned char* data=(unsigned char*)malloc(w*h*n);
 	cout<<" w:"<<w<<" h:"<<h<<" n:"<<n<<endl;
 	string outPng = "out.png";
 
 	Vec3f Camera(0.f,0.f,0.f);
 	Vec3f Dir;
-	float fov=M_PI/2;
 
 	//rgba 4通道，a取值255
 	//#pragma omp parallel for
